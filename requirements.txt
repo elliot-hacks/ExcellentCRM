@@ -1,0 +1,7 @@
+django-allauth>=65.4.1
+django-crispy-forms>=2.3
+djangorestframework>=3.15.2
+django>=5
+pymysql
+whitenoise
+django-admin-sortable>=2.3
