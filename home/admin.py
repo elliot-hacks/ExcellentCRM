@@ -6,3 +6,4 @@ from . import models
 @admin.register(models.CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
     list_display = ['email', 'role', 'avatar', 'username']
+

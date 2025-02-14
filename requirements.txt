@@ -5,3 +5,4 @@ django>=5
 pymysql
 whitenoise
 django-admin-sortable>=2.3
+django-environ>=0.12.0
