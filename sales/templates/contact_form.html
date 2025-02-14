@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    {% for field in form_template.fields.all %}
+        <label>{{ field.label }}</label>
+        {% if field.field_type == "text" %}
+            <input type="text" name="{{ field.label }}" required>
+        {% elif field.field_type == "email" %}
+            <input type="email" name="{{ field.label }}" required>
+        {% elif field.field_type == "phone" %}
+            <input type="tel" name="{{ field.label }}" required>
+        {% elif field.field_type == "checkbox" %}
+            <input type="checkbox" name="{{ field.label }}">
+        {% elif field.field_type == "date" %}
+            <input type="date" name="{{ field.label }}">
+        {% elif field.field_type == "choice" %}
+            <select name="{{ field.label }}">
+                {% for choice in field.choices.split(",") %}
+                    <option value="{{ choice }}">{{ choice }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
+    {% endfor %}
+    <button type="submit">Submit</button>
+</form>
+{% endblock %}

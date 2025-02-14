@@ -1,17 +1,21 @@
 from django.contrib import admin
-from .models import DynamicField
-from adminsortable.admin import SortableAdmin
+from .import models
 
 
-# Register your models here.
-@admin.register(DynamicField)
-class DynamicFieldAdmin(admin.ModelAdmin):
-    list_display = ('name', 'field_type', 'required', 'sales_team')
-    list_filter = ('field_type', 'sales_team')
+@admin.register(models.Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_display = ['email', 'name']
+
+@admin.register(models.FormTemplate)
+class FormTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'description']
 
 
+@admin.register(models.FormField)
+class FormFieldAdmin(admin.ModelAdmin):
+    list_display = ['form', 'label', 'field_type', 'choices', 'required']
+    list_select_related = ['form']
 
-# @admin.register(Contact)
-# class Contact(SortableAdmin):
-#     list_display = ['name', 'email', 'phone', 'message', 'company', 'date']
-    
+@admin.register(models.FormResponse)
+class FormResponseAdmin(admin.ModelAdmin):
+    list_display = ['contact', 'form', 'response_data', 'submitted_at']

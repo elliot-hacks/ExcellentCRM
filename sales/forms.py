@@ -1,27 +1,33 @@
 from django import forms
-from .models import DynamicField
+import json
+from .models import Contact, FormTemplate, FormResponse
 
-def generate_dynamic_form():
-    class SalesForm(forms.Form):
-        for field in DynamicField.objects.all():
-            field_name = field.name.lower().replace(" ", "_")
-            if field.field_type == 'text':
-                locals()[field_name] = forms.CharField(widget=forms.Textarea, required=field.required)
-            elif field.field_type == 'char':
-                locals()[field_name] = forms.CharField(required=field.required)
-            elif field.field_type == 'email':
-                locals()[field_name] = forms.EmailField(required=field.required)
-            elif field.field_type == 'phone':
-                locals()[field_name] = forms.CharField(max_length=15, required=field.required)
-            elif field.field_type == 'date':
-                locals()[field_name] = forms.DateField(widget=forms.SelectDateWidget, required=field.required)
-            elif field.field_type == 'datetime':
-                locals()[field_name] = forms.DateTimeField(widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}), required=field.required)
-            elif field.field_type == 'checkbox':
-                locals()[field_name] = forms.BooleanField(required=field.required)
-            elif field.field_type == 'location':
-                locals()[field_name] = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Enter location'}), required=field.required)
-            elif field.field_type == 'choices':
-                choices_list = [(choice.strip(), choice.strip()) for choice in field.choices.split(",") if choice.strip()]
-                locals()[field_name] = forms.ChoiceField(choices=choices_list, required=field.required)
-    return SalesForm
+class ContactForm(forms.ModelForm):
+    class Meta:
+        model = Contact
+        fields = ['email', 'name']
+
+class DynamicForm(forms.Form):
+    """Creates form fields dynamically based on field_schema"""
+
+    def __init__(self, field_schema, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for field_name, field_props in field_schema.items():
+            field_type = field_props.get("type", "text")
+            required = field_props.get("required", False)
+            label = field_props.get("label", field_name)
+
+            if field_type == "text":
+                self.fields[field_name] = forms.CharField(label=label, required=required)
+            elif field_type == "email":
+                self.fields[field_name] = forms.EmailField(label=label, required=required)
+            elif field_type == "phone":
+                self.fields[field_name] = forms.CharField(label=label, required=required)
+            elif field_type == "checkbox":
+                self.fields[field_name] = forms.BooleanField(label=label, required=required)
+            elif field_type == "date":
+                self.fields[field_name] = forms.DateField(label=label, required=required)
+            elif field_type == "choice":
+                choices = field_props.get("choices", [])
+                self.fields[field_name] = forms.ChoiceField(choices=[(c, c) for c in choices], label=label, required=required)
