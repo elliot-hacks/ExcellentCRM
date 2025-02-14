@@ -22,4 +22,4 @@ def send_mail_page(request):
         else:
             context['result'] = 'All fields are required'
     
-    return render(request, "index.html", context)
+    return render(request, "send_mail.html", context)
