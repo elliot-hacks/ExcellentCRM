@@ -9,5 +9,5 @@ urlpatterns = [
     path('register/', views.u_register, name='u_register'),
     path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
-    re_path(r'^activate/(?P<uidb64>[\w-]+)/(?P<token>[\w-]+)/$', views.activate, name='activate'),
+    path('activate/<uidb64>/<token>/', views.activate, name='activate'), 
 ]
