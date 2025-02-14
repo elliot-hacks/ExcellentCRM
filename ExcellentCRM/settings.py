@@ -27,6 +27,7 @@ INSTALLED_APPS = [
 
     # CRM Apps
     'home',
+    'sales',
 ]
 
 MIDDLEWARE = [
