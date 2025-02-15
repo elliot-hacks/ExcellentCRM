@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     # 'allauth.socialaccount',
     # 'allauth.socialaccount.providers.google',
     'adminsortable',
+    'django_admin_action_forms',
 
     # CRM Apps
     'home',

@@ -1,0 +1,18 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="module">
+    <h1>{{ title }}</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <!-- Hidden fields for selected users -->
+        {% for user_id in selected_users %}
+            <input type="hidden" name="selected_users" value="{{ user_id }}">
+        {% endfor %}
+        <div class="submit-row">
+            <input type="submit" value="Send Email" name="apply" class="default">
+            <a href="." class="button">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

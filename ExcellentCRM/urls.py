@@ -7,4 +7,5 @@ urlpatterns = [
     # path('accounts/', include('allauth.socialaccount.urls')),
     path('', include('home.urls')),
     path('sales', include('sales.urls')),
+    path("admin/action-forms/", include("django_admin_action_forms.urls")),
 ]
