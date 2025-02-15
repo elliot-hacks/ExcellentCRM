@@ -5,10 +5,35 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import ContactMessage
 from django.views.decorators.csrf import csrf_exempt
 from .forms import ContactForm
+from django.http import JsonResponse
+from .processor import log_user_action
+from django.db.models import Count
 import json
 
 
 # Create your views here.
+def track_action(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            log_user_action(request, data.get("action", "Unknown Action"))
+            return JsonResponse({"status": "success"})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
+
+
+def get_visitor_statistics():
+    unique_visitors = VisitorInfos.objects.values('ip_address').distinct().count()
+    most_visited_pages = VisitorInfos.objects.values('page_visited').annotate(count=Count('page_visited')).order_by('-count')[:5]
+    top_referrers = VisitorInfos.objects.values('referrer').annotate(count=Count('referrer')).order_by('-count')[:5]
+
+    return {
+        "unique_visitors": unique_visitors,
+        "most_visited_pages": most_visited_pages,
+        "top_referrers": top_referrers,
+    }
+
+# Mailing
 def send_mail_page(request):
     context = {}
 

@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.core.mail import send_mail
 from django import forms
 from django_admin_action_forms import action_with_form, AdminActionForm
-from .models import ContactMessage, EmailTemplate
+from .models import ContactMessage, EmailTemplate, VisitorInfos
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -68,4 +68,12 @@ class UserAdmin(admin.ModelAdmin):
 class ContactAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "message", "submitted_at")
     search_fields = ("name", "email", "message")
-    actions = [send_custom_email]  # Add the custom email action       
+    actions = [send_custom_email]  # Add the custom email action
+
+
+# Track VIsitors
+@admin.register(VisitorInfos)
+class VisitorInfosAdmin(admin.ModelAdmin):
+    list_display = ("ip_address", "page_visited", "event_date")
+    list_filter = ("event_date",)
+    search_fields = ("ip_address", "page_visited")

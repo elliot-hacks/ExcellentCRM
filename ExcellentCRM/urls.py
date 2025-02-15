@@ -9,3 +9,8 @@ urlpatterns = [
     path('sales', include('sales.urls')),
     path("admin/action-forms/", include("django_admin_action_forms.urls")),
 ]
+
+
+admin.site.site_header = "Excellent Stuff"
+admin.site.site_title = "Excellent Admin"
+admin.site.index_title = "Karibu Excellent Guidelines"
