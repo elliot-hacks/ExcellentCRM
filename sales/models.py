@@ -34,7 +34,8 @@ class VisitorInfos(models.Model):
     referrer = models.URLField(blank=True, null=True)
     page_visited = models.TextField()
     action = models.TextField(blank=True, null=True)  # Stores specific actions like "Clicked CTA"
+    visit_count = models.PositiveIntegerField(default=1)  # ✅ Track number of visits
     event_date = models.DateTimeField(default=now)
 
     def __str__(self):
-        return f"{self.ip_address} visited {self.page_visited} on {self.event_date}"
+        return f"{self.ip_address} visited {self.page_visited} ({self.visit_count} times) on {self.event_date}"

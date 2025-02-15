@@ -74,6 +74,8 @@ class ContactAdmin(admin.ModelAdmin):
 # Track VIsitors
 @admin.register(VisitorInfos)
 class VisitorInfosAdmin(admin.ModelAdmin):
-    list_display = ("ip_address", "page_visited", "event_date")
-    list_filter = ("event_date",)
+    list_display = ("ip_address", "page_visited", "visit_count", "event_date", "action")
+    list_filter = ("page_visited", "visit_count")  # ✅ Add filters
     search_fields = ("ip_address", "page_visited")
+    ordering = ("-event_date",)  # Order by most recent visits
+    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")  # ✅ Prevent manual edits

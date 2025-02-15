@@ -4,20 +4,19 @@ from .models import VisitorInfos
 import socket
 import datetime
 
-def save_visitor_infos(request):
-    """ Context processor for tracking visitors. """
-    context_nb_visitors = 0
 
+def save_visitor_infos(request):
+    """ Tracks page visits and updates visit counts """
     if not hasattr(request, 'META'):
-        print("Error: Invalid request object")
-        return {}  # ✅ Return an empty dictionary if request is invalid
+        print("🚨 Error: Invalid request object")
+        return {}
 
     try:
         # Get visitor IP address
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
 
-        # Check if IP address is valid
+        # Validate IP address
         try:
             socket.inet_aton(ip)
             ip_valid = True
@@ -25,30 +24,25 @@ def save_visitor_infos(request):
             ip_valid = False
 
         if ip_valid:
-            present_date = now()  # ✅ Use timezone-aware datetime
-            ref_date_1 = present_date - datetime.timedelta(days=1)
+            page_visited = request.path
+            present_date = now()
 
-            # Save visitor info only if not already recorded in the last 24 hours
-            if not VisitorInfos.objects.filter(ip_address=ip, page_visited=request.path, event_date__gte=ref_date_1).exists():
-                VisitorInfos.objects.create(
-                    ip_address=ip,
-                    page_visited=request.path,
-                    event_date=present_date
-                )
-            else:
-                visitor_infos_obj = VisitorInfos.objects.get(ip_address=ip, page_visited=request.path, event_date__gte=ref_date_1)
-                visitor_infos_obj.event_date = present_date
-                visitor_infos_obj.save()
+            # Check if the visit exists
+            visit_entry, created = VisitorInfos.objects.get_or_create(
+                ip_address=ip,
+                page_visited=page_visited,
+                defaults={"last_visited": present_date}
+            )
+
+            if not created:
+                visit_entry.visit_count += 1  # ✅ Increment visit count
+                visit_entry.last_visited = present_date
+                visit_entry.save()
 
     except Exception as e:
-        print(f"Error saving visitor info: {e}")
+        print(f"🚨 Error saving visitor info: {e}")
 
-    # Retrieve the number of active visitors in the last 5 minutes
-    ref_date = now() - datetime.timedelta(minutes=5)  # ✅ Use timezone-aware datetime
-    context_nb_visitors = VisitorInfos.objects.filter(event_date__gte=ref_date).values_list('ip_address', flat=True).distinct().count()
-
-    return {"context_nb_visitors": context_nb_visitors}  # ✅ Ensure a dictionary is returned
-
+    return {}
 
 
 def log_user_action(request, action):
