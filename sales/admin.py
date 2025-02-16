@@ -2,6 +2,7 @@ from django.contrib import admin, messages
 from django.core.mail import send_mail
 from django import forms
 from django_admin_action_forms import action_with_form, AdminActionForm
+from django.contrib.contenttypes.models import ContentType
 from .models import ContactMessage, EmailTemplate, VisitorInfos
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
@@ -65,77 +66,57 @@ class UserAdmin(admin.ModelAdmin):
         return ", ".join([group.name for group in obj.groups.all()])
     user_groups.short_description = "Groups"
 
-# 🎯 Register Contact Messages
+# 🎯 Admin Filter to Link VisitorInfos and ContactMessage
+class ContactMessageFilter(admin.SimpleListFilter):
+    title = "Sales Contact Form Submissions"
+    parameter_name = "salescontact_submission"
+
+    def lookups(self, request, model_admin):
+        """ Define filter options with submission percentage """
+        total_visitors = VisitorInfos.objects.filter(page_visited="/salescontact/").count()
+        total_submitted = VisitorInfos.objects.filter(
+            page_visited="/salescontact/",
+            content_type=ContentType.objects.get_for_model(ContactMessage),
+            object_id__isnull=False
+        ).count()
+
+        submission_percentage = (total_submitted / total_visitors * 100) if total_visitors else 0
+
+        return [
+            ("submitted", f"Submitted Contact Form ({total_submitted}/{total_visitors}, {submission_percentage:.2f}%)"),
+            ("not_submitted", f"Did Not Submit ({total_visitors - total_submitted}/{total_visitors})"),
+        ]
+
+    def queryset(self, request, queryset):
+        """ Filter VisitorInfos based on ContactMessage submissions for /salescontact/ """
+        content_type = ContentType.objects.get_for_model(ContactMessage)
+        sales_contact_visits = queryset.filter(page_visited="/salescontact/")
+
+        if self.value() == "submitted":
+            return sales_contact_visits.filter(content_type=content_type, object_id__isnull=False)
+        elif self.value() == "not_submitted":
+            return sales_contact_visits.filter(Q(content_type__isnull=True) | Q(object_id__isnull=True))
+        
+        return sales_contact_visits
+
+# 🎯 Register VisitorInfos in Admin
+@admin.register(VisitorInfos)
+class VisitorInfosAdmin(admin.ModelAdmin):
+    list_display = ("ip_address", "page_visited", "visit_count", "event_date", "action", "has_submitted_contact_form")
+    list_filter = ("page_visited", ContactMessageFilter)  # Add custom filter
+    search_fields = ("ip_address", "page_visited")
+    ordering = ("-event_date",)
+    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")  
+
+    def has_submitted_contact_form(self, obj):
+        """ Check if the visitor submitted a ContactMessage form """
+        return obj.content_type == ContentType.objects.get_for_model(ContactMessage) and obj.object_id is not None
+    has_submitted_contact_form.boolean = True
+    has_submitted_contact_form.short_description = "Submitted Contact Form"
+
+# 🎯 Register ContactMessage in Admin
 @admin.register(ContactMessage)
 class ContactAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "message", "submitted_at")
     search_fields = ("name", "email", "message")
-    actions = [send_custom_email]  # Add the custom email action
-
-# 🎯 Custom Admin Filter for Sales Contact Analytics
-class SalesContactFilter(admin.SimpleListFilter):
-    title = "CommentPage Analytics"
-    parameter_name = "sales_contact_analytics"
-
-    def lookups(self, request, model_admin):
-        """ Define filter options """
-        return [
-            ("total_visits", "Total Visits"),
-            ("total_email_submissions", "Total Email Submissions"),
-            ("submission_percentage", "Submission %"),
-        ]
-
-    def queryset(self, request, queryset):
-        """ Modify queryset based on selected filter """
-        total_visits = VisitorInfos.objects.filter(page_visited="/salescontact/").count()
-        total_email_submissions = ContactMessage.objects.count()  # ✅ Count only email templates
-
-        if total_visits > 0:
-            submission_percentage = (total_email_submissions / total_visits) * 100
-        else:
-            submission_percentage = 0
-
-        # Dynamically return filtered results
-        if self.value() == "total_visits":
-            return queryset.filter(page_visited="/salescontact/")
-        elif self.value() == "total_email_submissions":
-            return queryset.none()  # Display as a metric, not a queryset filter
-        elif self.value() == "submission_percentage":
-            return queryset.none()
-        return queryset
-
-# 🎯 Register Visitors Admin with Custom Filter
-@admin.register(VisitorInfos)
-class VisitorInfosAdmin(admin.ModelAdmin):
-    list_display = ("ip_address", "page_visited", "visit_count", "event_date", "action", "submission_percentage")
-    list_filter = ("page_visited", SalesContactFilter)  
-    search_fields = ("ip_address", "page_visited")
-    ordering = ("-event_date",)
-    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")  
-
-    def submission_percentage(self, obj):
-        """ Display conversion rate dynamically (Email Templates vs Visits) """
-        total_visits = VisitorInfos.objects.filter(page_visited="/salescontact/").count()
-        total_email_submissions = EmailTemplate.objects.count()
-
-        if total_visits > 0:
-            return f"{(total_email_submissions / total_visits) * 100:.2f}%"
-        return "0%"
-
-    submission_percentage.short_description = "Conversion Rate"
-    list_display = ("ip_address", "page_visited", "visit_count", "event_date", "action", "submission_percentage")
-    list_filter = ("page_visited", SalesContactFilter)  
-    search_fields = ("ip_address", "page_visited")
-    ordering = ("-event_date",)
-    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")  
-
-    def submission_percentage(self, obj):
-        """ Display conversion rate dynamically """
-        total_visits = VisitorInfos.objects.filter(page_visited="/salescontact/").count()
-        total_submissions = ContactMessage.objects.count()
-
-        if total_visits > 0:
-            return f"{(total_submissions / total_visits) * 100:.2f}%"
-        return "0%"
-
-    submission_percentage.short_description = "Conversion Rate"
+    actions = [send_custom_email]
