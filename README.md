@@ -16,13 +16,16 @@ An **Excellent Customer Relationship Management (CRM)** application built with *
 
 ## 🛠 Installation
 
-Clone the repository and install dependencies:
+Clone the repository and install dependencies including geospacial Libraries:
 
 ```bash
 git clone https://github.com/elliot-hacks/ExcellentCRM.git
 cd ExcellentCRM
 pip install -r requirements.
+sudo apt-get install binutils libproj-dev gdal-bin
 ```
+For any errors on Geospacial libraries check Django documentation [GIS](https://docs.djangoproject.com/en/5.1/ref/contrib/gis/install/geolibs/)
+
 Run migrations:
 
 python manage.py makemigrations

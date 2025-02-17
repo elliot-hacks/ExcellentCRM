@@ -6,6 +6,8 @@ from django.contrib.contenttypes.models import ContentType
 from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
+# from mapwidgets.widgets import GooglePointFieldWidget
+from django.contrib.gis.db import models
 from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils.html import format_html
@@ -26,13 +28,13 @@ class EmailTemplateChoiceForm(AdminActionForm):
         help_text = "Choose an email template to send to the selected users."
 
 # 🎯 Function to Send Emails with Selected Template
-
 logger = logging.getLogger(__name__)
 
 @action_with_form(
     EmailTemplateChoiceForm,
     description="📧 Send Custom Email with Template",
 )
+
 
 def send_custom_email(modeladmin, request, queryset, data):
     cache_key = f"email_rate_limit_{request.user.id}"
@@ -41,7 +43,14 @@ def send_custom_email(modeladmin, request, queryset, data):
         return
 
     selected_template = data["email_template"]
-    recipient_emails = [user.email for user in queryset if user.email]
+    recipient_emails = []
+
+    # Collect email addresses from queryset
+    for obj in queryset:
+        if hasattr(obj, 'email'):  # For CustomUser and ContactMessage
+            recipient_emails.append(obj.email)
+        else:
+            modeladmin.message_user(request, f"⚠️ Object {obj} does not have an email field.", messages.WARNING)
 
     if recipient_emails:
         try:
@@ -52,12 +61,17 @@ def send_custom_email(modeladmin, request, queryset, data):
                 recipient_list=recipient_emails,
                 fail_silently=False,
             )
+
             # Create EmailTracking entries
-            for user in queryset:
-                EmailTracking.objects.create(
-                    email_template=selected_template,
-                    recipient=user,
-                )
+            for obj in queryset:
+                if hasattr(obj, 'email'):  # Ensure the object has an email field
+                    content_type = ContentType.objects.get_for_model(obj)
+                    EmailTracking.objects.create(
+                        email_template=selected_template,
+                        content_type=content_type,
+                        object_id=obj.id,
+                    )
+
             modeladmin.message_user(request, f"✅ Email sent to {len(recipient_emails)} recipients.", messages.SUCCESS)
         except Exception as e:
             logger.error(f"Failed to send email: {e}")
@@ -65,7 +79,7 @@ def send_custom_email(modeladmin, request, queryset, data):
     else:
         modeladmin.message_user(request, "⚠️ No valid email addresses found.", messages.WARNING)
 
-    cache.set(cache_key, True, timeout=60 * 5)
+    cache.set(cache_key, True, timeout=60 * 1)
 
 # 🎯 Register EmailTemplate in Admin
 @admin.register(EmailTemplate)
@@ -83,7 +97,7 @@ except admin.sites.NotRegistered:
 class UserAdmin(admin.ModelAdmin):
     list_display = ("username", "email", "first_name", "last_name", "is_active", "user_groups")
     list_filter = ("is_active", "groups")
-    list_select_related = ["email"]
+    # list_select_related = ["email"]
     search_fields = ("username", "email", "first_name", "last_name")
     list_per_page = 20
     actions = [send_custom_email]  # Add the custom email action
@@ -128,15 +142,20 @@ class ContactMessageFilter(admin.SimpleListFilter):
 # 🎯 Register VisitorInfos in Admin
 @admin.register(VisitorInfos)
 class VisitorInfosAdmin(admin.ModelAdmin):
-    list_display = ("ip_address", "page_visited", "visit_count", "event_date", "action", "has_submitted_contact_form")
-    list_filter = ("page_visited", ContactMessageFilter)  # Add custom filter
-    search_fields = ("ip_address", "page_visited")
+    list_display = (
+        "ip_address", "city", "region", "country", "page_visited", "visit_count", "event_date", "has_submitted_contact_form", "timezone", "isp",
+    )
+    list_filter = ("page_visited", "country", "region", "city")
+    search_fields = ("ip_address", "city", "region", "country", "page_visited")
     ordering = ("-event_date",)
-    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")
-    list_per_page = 20  
+    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action", "city", "region", "country", "latitude", "longitude")
+    list_per_page = 20
+
+    # formfield_overrides = {
+    #     models.PointField: {"widget": GooglePointFieldWidget},
+    # }
 
     def has_submitted_contact_form(self, obj):
-        """ Check if the visitor submitted a ContactMessage form """
         return obj.content_type == ContentType.objects.get_for_model(ContactMessage) and obj.object_id is not None
     has_submitted_contact_form.boolean = True
     has_submitted_contact_form.short_description = "Submitted Contact Form"

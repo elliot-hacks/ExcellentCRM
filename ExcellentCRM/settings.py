@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     # 'allauth.account',
     # 'allauth.socialaccount',
     # 'allauth.socialaccount.providers.google',
+    'mapwidgets',
     'adminsortable',
     'django_admin_action_forms',
 
@@ -40,6 +41,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'sales.ip_middleware.VisitorTrackingMiddleware',
     # 'sales.processor.log_user_action',
     # 'allauth.account.middleware.AccountMiddleware',
 ]
@@ -134,6 +136,16 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = env("MAIL_NAME")
 EMAIL_HOST_PASSWORD = env("MAIL_PASS")
 
+MAP_WIDGETS = {
+    "GoogleStaticMapWidget": (
+        ("zoom", 15),
+        ("size", "320x320"),
+    ),
+    "GoogleStaticMapMarkerSettings": (
+        ("color", "green"),
+    ),
+    "GOOGLE_MAP_API_KEY": "AIzaSyA1fXsJSKqZH_Bl9d9wueJMlpXd-6tEJy0"
+}
 
 # AUTHENTICATION_BACKENDS = [
 #     'django.contrib.auth.backends.ModelBackend',

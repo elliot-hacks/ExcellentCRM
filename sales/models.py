@@ -13,6 +13,7 @@ class ContactMessage(models.Model):
     email = models.EmailField()
     message = models.TextField()
     submitted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField()
 
     # Generic relation to VisitorInfos
     visitor_info = GenericRelation('VisitorInfos', related_query_name='contact_messages')
@@ -43,14 +44,19 @@ class EmailTemplate(models.Model):
 
 
 class EmailTracking(models.Model):
-    email_template = models.ForeignKey(EmailTemplate, on_delete=models.CASCADE, related_name='tracking_emails')
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tracked_emails')
+    email_template = models.ForeignKey(EmailTemplate, on_delete=models.CASCADE)
+    
+    # Generic ForeignKey for recipient
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    recipient = GenericForeignKey('content_type', 'object_id')
+
     sent_at = models.DateTimeField(auto_now_add=True)
     opened_at = models.DateTimeField(null=True, blank=True)
     clicked_link = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.recipient.email} - {self.email_template.subject}"
+        return f"{self.recipient} - {self.email_template.subject}"
 
 
 # 🎯 Model to Track Visitor Information with Generic Relations
@@ -61,13 +67,22 @@ class VisitorInfos(models.Model):
     user_agent = models.TextField(blank=True, null=True)
     referrer = models.URLField(blank=True, null=True)
     page_visited = models.TextField()
-    action = models.TextField(blank=True, null=True)  # Stores specific actions like "Clicked CTA"
-    visit_count = models.PositiveIntegerField(default=1)  # ✅ Track number of visits
+    action = models.TextField(blank=True, null=True)
+    visit_count = models.PositiveIntegerField(default=1)
     event_date = models.DateTimeField(default=now)
-    search_fields = ("ip_address", "page_visited")
-    aw_id_fields = ("user", "content_type")  
 
-    # Generic Foreign Key to link to any model
+    # Location fields
+    city = models.CharField(max_length=255, blank=True, null=True)
+    region = models.CharField(max_length=255, blank=True, null=True)
+    country = models.CharField(max_length=255, blank=True, null=True)
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
+
+    # ISP and Timezone fields
+    isp = models.CharField(max_length=255, blank=True, null=True)  # Add ISP
+    timezone = models.CharField(max_length=255, blank=True, null=True)  # Add timezone
+
+    # Generic Foreign Key
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -78,4 +93,4 @@ class VisitorInfos(models.Model):
     class Meta:
         verbose_name = "VisitorInfo"
         verbose_name_plural = "VisitorInfos"
-        unique_together = ('user', 'session_id')
+        # unique_together = ('user', 'session_id')

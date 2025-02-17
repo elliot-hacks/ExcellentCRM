@@ -4,11 +4,13 @@ from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import ContactMessage
 from django.views.decorators.csrf import csrf_exempt
-from .forms import ContactForm
 from django.http import JsonResponse
-from .processor import log_user_action
 from django.db.models import Count
+from django.conf import settings
+from .forms import ContactForm
+from .processor import log_user_action
 import json
+from .utils import get_ip
 
 
 # Create your views here.
@@ -59,7 +61,10 @@ def contact_page(request):
     if request.method == "POST":
         form = ContactForm(request.POST)
         if form.is_valid():
-            contact_message = form.save()
+            # Save the form data and capture the IP address
+            contact_message = form.save(commit=False)
+            contact_message.ip_address = get_ip(request)  # Capture the user's IP address
+            contact_message.save()
 
             # Send notification email
             subject = "New Contact Form Submission"
@@ -80,7 +85,6 @@ def contact_page(request):
         form = ContactForm()
 
     return render(request, "sales/contact.html", {"form": form})
-
 
 def contact_success(request):
     """Render the success page after a user submits a contact form."""
