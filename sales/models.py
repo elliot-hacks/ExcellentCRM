@@ -20,6 +20,10 @@ class ContactMessage(models.Model):
     def __str__(self):
         return f"{self.email} - {self.submitted_at}"
 
+    class Meta:
+        verbose_name = "ContactMessage"
+        verbose_name_plural = "ContactMessages"
+
 # 🎯 Email Template Model
 class EmailTemplate(models.Model):
     subject = models.CharField(max_length=255, help_text="Enter the email subject.")
@@ -28,6 +32,10 @@ class EmailTemplate(models.Model):
 
     def __str__(self):
         return self.subject
+
+    class Meta:
+        verbose_name = "EmailTemplate"
+        verbose_name_plural = "EmailTemplates"
 
 # 🎯 Model to Track Visitor Information with Generic Relations
 class VisitorInfos(models.Model):
@@ -48,3 +56,8 @@ class VisitorInfos(models.Model):
 
     def __str__(self):
         return f"{self.ip_address} visited {self.page_visited} ({self.visit_count} times) on {self.event_date}"
+
+    class Meta:
+        verbose_name = "VisitorInfo"
+        verbose_name_plural = "VisitorInfos"
+        unique_together = ('user', 'session_id')
