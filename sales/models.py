@@ -33,9 +33,25 @@ class EmailTemplate(models.Model):
     def __str__(self):
         return self.subject
 
+    def clean(self):
+        if not self.subject or not self.message:
+            raise ValidationError("Subject and message are required.")
+
     class Meta:
         verbose_name = "EmailTemplate"
         verbose_name_plural = "EmailTemplates"
+
+
+class EmailTracking(models.Model):
+    email_template = models.ForeignKey(EmailTemplate, on_delete=models.CASCADE, related_name='tracking_emails')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tracked_emails')
+    sent_at = models.DateTimeField(auto_now_add=True)
+    opened_at = models.DateTimeField(null=True, blank=True)
+    clicked_link = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.recipient.email} - {self.email_template.subject}"
+
 
 # 🎯 Model to Track Visitor Information with Generic Relations
 class VisitorInfos(models.Model):
@@ -48,6 +64,8 @@ class VisitorInfos(models.Model):
     action = models.TextField(blank=True, null=True)  # Stores specific actions like "Clicked CTA"
     visit_count = models.PositiveIntegerField(default=1)  # ✅ Track number of visits
     event_date = models.DateTimeField(default=now)
+    search_fields = ("ip_address", "page_visited")
+    aw_id_fields = ("user", "content_type")  
 
     # Generic Foreign Key to link to any model
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)

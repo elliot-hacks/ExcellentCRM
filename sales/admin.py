@@ -3,10 +3,13 @@ from django.core.mail import send_mail
 from django import forms
 from django_admin_action_forms import action_with_form, AdminActionForm
 from django.contrib.contenttypes.models import ContentType
-from .models import ContactMessage, EmailTemplate, VisitorInfos
+from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking
+from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils.html import format_html
+import logging
 
 User = get_user_model()
 
@@ -23,25 +26,46 @@ class EmailTemplateChoiceForm(AdminActionForm):
         help_text = "Choose an email template to send to the selected users."
 
 # 🎯 Function to Send Emails with Selected Template
+
+logger = logging.getLogger(__name__)
+
 @action_with_form(
     EmailTemplateChoiceForm,
     description="📧 Send Custom Email with Template",
 )
+
 def send_custom_email(modeladmin, request, queryset, data):
+    cache_key = f"email_rate_limit_{request.user.id}"
+    if cache.get(cache_key):
+        modeladmin.message_user(request, "⚠️ Rate limit exceeded. Please try again later.", messages.WARNING)
+        return
+
     selected_template = data["email_template"]
     recipient_emails = [user.email for user in queryset if user.email]
 
     if recipient_emails:
-        send_mail(
-            subject=selected_template.subject,
-            message=selected_template.message,
-            from_email="iamthetechoverload@gmail.com",
-            recipient_list=recipient_emails,
-            fail_silently=False,
-        )
-        modeladmin.message_user(request, f"✅ Email sent to {len(recipient_emails)} recipients.", messages.SUCCESS)
+        try:
+            send_mail(
+                subject=selected_template.subject,
+                message=selected_template.message,
+                from_email="iamthetechoverload@gmail.com",
+                recipient_list=recipient_emails,
+                fail_silently=False,
+            )
+            # Create EmailTracking entries
+            for user in queryset:
+                EmailTracking.objects.create(
+                    email_template=selected_template,
+                    recipient=user,
+                )
+            modeladmin.message_user(request, f"✅ Email sent to {len(recipient_emails)} recipients.", messages.SUCCESS)
+        except Exception as e:
+            logger.error(f"Failed to send email: {e}")
+            modeladmin.message_user(request, f"⚠️ Failed to send email: {e}", messages.ERROR)
     else:
         modeladmin.message_user(request, "⚠️ No valid email addresses found.", messages.WARNING)
+
+    cache.set(cache_key, True, timeout=60 * 5)
 
 # 🎯 Register EmailTemplate in Admin
 @admin.register(EmailTemplate)
@@ -59,7 +83,9 @@ except admin.sites.NotRegistered:
 class UserAdmin(admin.ModelAdmin):
     list_display = ("username", "email", "first_name", "last_name", "is_active", "user_groups")
     list_filter = ("is_active", "groups")
+    list_select_related = ["email"]
     search_fields = ("username", "email", "first_name", "last_name")
+    list_per_page = 20
     actions = [send_custom_email]  # Add the custom email action
 
     def user_groups(self, obj):
@@ -106,7 +132,8 @@ class VisitorInfosAdmin(admin.ModelAdmin):
     list_filter = ("page_visited", ContactMessageFilter)  # Add custom filter
     search_fields = ("ip_address", "page_visited")
     ordering = ("-event_date",)
-    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")  
+    readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")
+    list_per_page = 20  
 
     def has_submitted_contact_form(self, obj):
         """ Check if the visitor submitted a ContactMessage form """
@@ -119,4 +146,13 @@ class VisitorInfosAdmin(admin.ModelAdmin):
 class ContactAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "message", "submitted_at")
     search_fields = ("name", "email", "message")
+    list_per_page = 20
     actions = [send_custom_email]
+
+# 🎯 Register EmailTracking in Admin
+@admin.register(EmailTracking)
+class EmailTrackingAdmin(admin.ModelAdmin):
+    list_display = ("recipient", "email_template", "sent_at", "opened_at", "clicked_link")
+    list_filter = ("sent_at", "opened_at", "clicked_link")
+    search_fields = ("recipient__email", "email_template__subject")
+    list_per_page = 20
