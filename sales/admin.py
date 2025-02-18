@@ -3,17 +3,17 @@ from django.core.mail import send_mail
 from django import forms
 from django_admin_action_forms import action_with_form, AdminActionForm
 from django.contrib.contenttypes.models import ContentType
+from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking, IPAddress
+from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+# from mapwidgets.widgets import GooglePointFieldWidget
+from django.contrib.gis.db import models
 from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils.html import format_html
 import logging
-from .models import (
-    ContactMessage, EmailTemplate, VisitorInfos, EmailTracking, IPAddress
-)
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
-logger = logging.getLogger(__name__)
 
 # 🎯 Form for Selecting Email Template
 class EmailTemplateChoiceForm(AdminActionForm):
@@ -24,49 +24,89 @@ class EmailTemplateChoiceForm(AdminActionForm):
     )
 
     class Meta:
-        list_objects = True  # Show list of selected users
+        list_objects = True  # Show the list of selected users
         help_text = "Choose an email template to send to the selected users."
 
-# 🎯 Function to Send Emails with Rate Limiting
+# 🎯 Function to Send Emails with Selected Template
+logger = logging.getLogger(__name__)
+
 @action_with_form(
     EmailTemplateChoiceForm,
     description="📧 Send Custom Email with Template",
 )
 
+
 def send_custom_email(modeladmin, request, queryset, data):
+    cache_key = f"email_rate_limit_{request.user.id}"
+    if cache.get(cache_key):
+        modeladmin.message_user(request, "⚠️ Rate limit exceeded. Please try again later.", messages.WARNING)
+        return
+
     selected_template = data["email_template"]
     recipient_emails = []
 
+    # Collect email addresses from queryset
     for obj in queryset:
-        if hasattr(obj, 'email'):
+        if hasattr(obj, 'email'):  # For CustomUser and ContactMessage
             recipient_emails.append(obj.email)
+        else:
+            modeladmin.message_user(request, f"⚠️ Object {obj} does not have an email field.", messages.WARNING)
 
     if recipient_emails:
-        for obj in queryset:
-            if hasattr(obj, 'email'):
-                content_type = ContentType.objects.get_for_model(obj)
-                tracking = EmailTracking.objects.create(
-                    email_template=selected_template,
-                    content_type=content_type,
-                    object_id=obj.id,
-                )
+        try:
+            send_mail(
+                subject=selected_template.subject,
+                message=selected_template.message,
+                from_email="iamthetechoverload@gmail.com",
+                recipient_list=recipient_emails,
+                fail_silently=False,
+            )
 
-                # Replace links in email message
-                message_with_tracking = selected_template.message.replace(
-                    "https://yourdestination.com/",
-                    f"https://yourdomain.com/track-click/{tracking.id}/?redirect_url=https://yourdestination.com/"
-                )
+            # Create EmailTracking entries
+            for obj in queryset:
+                if hasattr(obj, 'email'):  # Ensure the object has an email field
+                    content_type = ContentType.objects.get_for_model(obj)
+                    EmailTracking.objects.create(
+                        email_template=selected_template,
+                        content_type=content_type,
+                        object_id=obj.id,
+                    )
 
-                send_mail(
-                    subject=selected_template.subject,
-                    message="HTML version required",
-                    from_email="your-email@example.com",
-                    recipient_list=[obj.email],
-                    fail_silently=False,
-                    html_message=message_with_tracking,  # ✅ Sends email with tracked links
-                )
+            modeladmin.message_user(request, f"✅ Email sent to {len(recipient_emails)} recipients.", messages.SUCCESS)
+        except Exception as e:
+            logger.error(f"Failed to send email: {e}")
+            modeladmin.message_user(request, f"⚠️ Failed to send email: {e}", messages.ERROR)
+    else:
+        modeladmin.message_user(request, "⚠️ No valid email addresses found.", messages.WARNING)
 
-# 🎯 Contact Form Submission Filter for Admin
+    cache.set(cache_key, True, timeout=60 * 1)
+
+# 🎯 Register EmailTemplate in Admin
+@admin.register(EmailTemplate)
+class EmailTemplateAdmin(admin.ModelAdmin):
+    list_display = ("subject", "created_at")
+    search_fields = ("subject",)
+
+# 🎯 Register Users with Actions
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ("username", "email", "first_name", "last_name", "is_active", "user_groups")
+    list_filter = ("is_active", "groups")
+    # list_select_related = ["email"]
+    search_fields = ("username", "email", "first_name", "last_name")
+    list_per_page = 20
+    actions = [send_custom_email]  # Add the custom email action
+
+    def user_groups(self, obj):
+        return ", ".join([group.name for group in obj.groups.all()])
+    user_groups.short_description = "Groups"
+
+# 🎯 Admin Filter to Link VisitorInfos and ContactMessage
 class ContactMessageFilter(admin.SimpleListFilter):
     title = "Sales Contact Form Submissions"
     parameter_name = "salescontact_submission"
@@ -99,79 +139,28 @@ class ContactMessageFilter(admin.SimpleListFilter):
         
         return sales_contact_visits
 
-# 🎯 Register EmailTemplate in Admin
-@admin.register(EmailTemplate)
-class EmailTemplateAdmin(admin.ModelAdmin):
-    list_display = ("subject", "created_at")
-    search_fields = ("subject",)
-
-# 🎯 Register Users with Actions
-try:
-    admin.site.unregister(User)
-except admin.sites.NotRegistered:
-    pass
-
-@admin.register(User)
-class UserAdmin(admin.ModelAdmin):
-    list_display = ("username", "email", "first_name", "last_name", "is_active", "user_groups")
-    list_filter = ("is_active", "groups")
-    search_fields = ("username", "email", "first_name", "last_name")
-    list_per_page = 20
-    actions = [send_custom_email]
-
-    def user_groups(self, obj):
-        return ", ".join([group.name for group in obj.groups.all()])
-    user_groups.short_description = "Groups"
-
-# 🎯 Register VisitorInfos in Admin with Geo-Data
+# 🎯 Register VisitorInfos in Admin
 @admin.register(VisitorInfos)
 class VisitorInfosAdmin(admin.ModelAdmin):
-    list_display = (
-        "ip_address", "get_city", "get_region", "get_country",
-        "page_visited", "visit_count", "event_date",
-        "has_submitted_contact_form", "get_timezone", "get_isp",
-    )
-    list_filter = ("page_visited", "ip_address__country", "ip_address__region", "ip_address__city")
-    search_fields = ("ip_address__ip_address", "ip_address__city", "ip_address__region", "ip_address__country", "page_visited")
+    list_display = ['user', 'ip_address', 'ip_address__country', 'page_visited', 'visit_count', 'event_date']
+    list_filter = ("page_visited", 'ip_address__country', "ip_address__isp", "ip_address__timezone")  # Filter by IP-related fields
+    search_fields = ("ip_address__ip_address", "page_visited")
     ordering = ("-event_date",)
     readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")
+    list_per_page = 20
 
     def has_submitted_contact_form(self, obj):
         return obj.content_type == ContentType.objects.get_for_model(ContactMessage) and obj.object_id is not None
     has_submitted_contact_form.boolean = True
     has_submitted_contact_form.short_description = "Submitted Contact Form"
 
-    def get_city(self, obj):
-        return obj.ip_address.city if obj.ip_address else "-"
-    get_city.short_description = "City"
-
-    def get_region(self, obj):
-        return obj.ip_address.region if obj.ip_address else "-"
-    get_region.short_description = "Region"
-
-    def get_country(self, obj):
-        return obj.ip_address.country if obj.ip_address else "-"
-    get_country.short_description = "Country"
-
-    def get_timezone(self, obj):
-        return obj.ip_address.timezone if obj.ip_address else "-"
-    get_timezone.short_description = "Timezone"
-
-    def get_isp(self, obj):
-        return obj.ip_address.isp if obj.ip_address else "-"
-    get_isp.short_description = "ISP"
-
 # 🎯 Register ContactMessage in Admin
 @admin.register(ContactMessage)
 class ContactAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "message", "submitted_at", "get_ip_address")
+    list_display = ("name", "email", "message", "submitted_at")
     search_fields = ("name", "email", "message")
     list_per_page = 20
     actions = [send_custom_email]
-
-    def get_ip_address(self, obj):
-        return obj.ip_address.ip_address if obj.ip_address else "N/A"
-    get_ip_address.short_description = "IP Address"
 
 # 🎯 Register EmailTracking in Admin
 @admin.register(EmailTracking)
@@ -179,4 +168,12 @@ class EmailTrackingAdmin(admin.ModelAdmin):
     list_display = ("recipient", "email_template", "sent_at", "opened_at", "clicked_link")
     list_filter = ("sent_at", "opened_at", "clicked_link")
     search_fields = ("recipient__email", "email_template__subject")
+    list_per_page = 20
+
+
+@admin.register(IPAddress)
+class IPAddressAdmin(admin.ModelAdmin):
+    list_display = ("ip_address", "city", "region", "country", "isp", "timezone")
+    list_filter = ("country", "region", "city")
+    search_fields = ("ip_address", "city", "region", "country", "isp")
     list_per_page = 20

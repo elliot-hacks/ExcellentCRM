@@ -146,6 +146,7 @@ MAP_WIDGETS = {
     "GOOGLE_MAP_API_KEY": "AIzaSyA1fXsJSKqZH_Bl9d9wueJMlpXd-6tEJy0"
 }
 
+
 # AUTHENTICATION_BACKENDS = [
 #     'django.contrib.auth.backends.ModelBackend',
 #     'allauth.account.auth_backends.AuthenticationBackend',

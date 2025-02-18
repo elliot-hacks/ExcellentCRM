@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+# from sales.admin_reports import analytics_dashboard
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -8,6 +9,7 @@ urlpatterns = [
     path('', include('home.urls')),
     path('sales', include('sales.urls')),
     path("admin/action-forms/", include("django_admin_action_forms.urls")),
+    # path("admin/analytics-dashboard/", analytics_dashboard, name="analytics_dashboard"),
 ]
 
 

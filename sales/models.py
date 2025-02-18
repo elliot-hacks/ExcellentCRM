@@ -23,7 +23,6 @@ class EmailTemplate(models.Model):
         verbose_name = "EmailTemplate"
         verbose_name_plural = "EmailTemplates"
 
-
 class EmailTracking(models.Model):
     email_template = models.ForeignKey("EmailTemplate", on_delete=models.CASCADE)
     
@@ -72,7 +71,7 @@ class VisitorInfos(models.Model):
     event_date = models.DateTimeField(default=now)
 
     def __str__(self):
-        return f"{self.ip_address} visited {self.page_visited} ({self.visit_count} times) on {self.event_date}"
+        return f"{self.ip_address.ip_address} - {self.ip_address.country} - {self.ip_address.city} visited {self.page_visited} ({self.visit_count} times) on {self.event_date}"
 
 class ContactMessage(models.Model):
     name = models.CharField(max_length=255)
