@@ -1,0 +1,90 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+{% block extrahead %}
+    <!-- Load Chart.js -->
+     
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // ✅ Parse chart data from Django context
+            const chartData = JSON.parse('{{ chart_data|escapejs }}');
+
+            // ✅ Daily Visits Chart
+            var ctx1 = document.getElementById("daily-chart").getContext("2d");
+            new Chart(ctx1, {
+                type: "line",
+                data: {
+                    labels: chartData.daily.map(d => d.date),
+                    datasets: [{
+                        label: "Visitors Per Day",
+                        data: chartData.daily.map(d => d.y),
+                        backgroundColor: "rgba(54, 162, 235, 0.6)",
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // ✅ Page Visits Chart
+            var ctx2 = document.getElementById("pages-chart").getContext("2d");
+            new Chart(ctx2, {
+                type: "bar",
+                data: {
+                    labels: chartData.pages.map(d => d.page_visited),
+                    datasets: [{
+                        label: "Most Visited Pages",
+                        data: chartData.pages.map(d => d.y),
+                        backgroundColor: "rgba(255, 99, 132, 0.6)",
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',  // ✅ Horizontal bar chart
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+
+            // ✅ Referrer Visits Chart
+            var ctx3 = document.getElementById("referrer-chart").getContext("2d");
+            new Chart(ctx3, {
+                type: "pie",
+                data: {
+                    labels: chartData.referrers.map(d => d.referrer),
+                    datasets: [{
+                        label: "Top Referrers",
+                        data: chartData.referrers.map(d => d.y),
+                        backgroundColor: ["#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#1337a3"]
+                    }]
+                }
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+    <h1>📊 Visitor Analytics</h1>
+    <hr>
+    <div class="row">
+        <div class="col-sm-6">
+            <h3>📅 Daily Visitors</h3>
+            <canvas id="daily-chart"></canvas>
+        </div>
+        <div class="col-sm-6">
+            <h3>📄 Most Visited Pages</h3>
+            <canvas id="pages-chart"></canvas>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+            <h3>🔗 Top Referrers</h3>
+            <canvas id="referrer-chart"></canvas>
+        </div>
+    </div>
+    {{ block.super }}
+{% endblock %}

@@ -69,6 +69,8 @@ class VisitorInfos(models.Model):
     action = models.TextField(blank=True, null=True)
     visit_count = models.PositiveIntegerField(default=1)
     event_date = models.DateTimeField(default=now)
+    last_visited = models.DateTimeField(default=now)  # ✅ New field
+
 
     def __str__(self):
         return f"{self.ip_address.ip_address} - {self.ip_address.country} - {self.ip_address.city} visited {self.page_visited} ({self.visit_count} times) on {self.event_date}"

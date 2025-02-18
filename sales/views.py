@@ -4,16 +4,59 @@ from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import ContactMessage, IPAddress, EmailTracking
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Count
 from django.conf import settings
 from .forms import ContactForm
 from .processor import log_user_action
 import json
 from .utils import get_ip
-
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
 
 # Create your views here.
+# Calender views
+def google_calender_init(request):
+    flow = Flow.from_client_secrets_file(
+        settings.GOOGLE_CLIENT_SECRETS_FILE,
+        scopes=settings.GOOGLE_API_SCOPES,
+        redirect_uri=settings.REDIRECT_URI,
+    )
+    authorization_uri, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scope='true'
+    )
+    request.session['state'] = state
+    return redirect(authorization_uri)
+
+
+def google_calender_redirect(request):
+    flow = Flow.from_client_secrets_file(
+        settings.GOOGLE_CLIENT_SECRETS_FILE,
+        scopes=settings.GOOGLE_API_SCOPES,
+        state = state,
+        redirect_uri=settings.REDIRECT_URI,
+    )
+
+    flow.fetch_token(authorization_response = request.build_absolute_uri())
+    credentials = flow.credentials
+
+    request.session['credentials'] = credentials_to_dict(credentials)
+    return HttpResponse('Calender intergration complete')
+
+
+def credentials_to_dict(credentials):
+    return{
+        'token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_uri': credentials.token_url,
+        'client_id': credentials.client_id,
+        'client_secret': credentials.client_secret,
+        'scopes': credentials.scopes,
+    }
+
+
+# Email views
 def track_action(request):
     if request.method == "POST":
         try:

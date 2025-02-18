@@ -147,6 +147,11 @@ MAP_WIDGETS = {
 }
 
 
+# Google calender API
+# GOOGLE_CLIENT_SECRETS_FILE = os.path.join(BASE_DIR, 'path/to/client_secret.json')
+# GOOGLE_API_SCOPES = ['https://www.googleapis.com/auth/calendar']
+# REDIRECT_URI = 'http://localhost:8000/oauth2callback' 
+
 # AUTHENTICATION_BACKENDS = [
 #     'django.contrib.auth.backends.ModelBackend',
 #     'allauth.account.auth_backends.AuthenticationBackend',

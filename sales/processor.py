@@ -1,6 +1,6 @@
 from django.utils.timezone import now  # ✅ Use timezone-aware function
 from django.conf import settings
-from .models import VisitorInfos
+from .models import VisitorInfos, IPAddress
 import socket
 import datetime
 
@@ -27,16 +27,19 @@ def save_visitor_infos(request):
             page_visited = request.path
             present_date = now()
 
-            # Check if the visit exists
+            # ✅ Ensure IP address exists in the database
+            ip_instance, _ = IPAddress.objects.get_or_create(ip_address=ip)
+
+            # ✅ Check if visitor record exists
             visit_entry, created = VisitorInfos.objects.get_or_create(
-                ip_address=ip,
+                ip_address=ip_instance,
                 page_visited=page_visited,
-                defaults={"last_visited": present_date}
+                defaults={"last_visited": present_date, "visit_count": 1}
             )
 
             if not created:
                 visit_entry.visit_count += 1  # ✅ Increment visit count
-                visit_entry.last_visited = present_date
+                visit_entry.last_visited = present_date  # ✅ Update last visited time
                 visit_entry.save()
 
     except Exception as e:

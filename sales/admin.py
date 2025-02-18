@@ -1,17 +1,20 @@
 from django.contrib import admin, messages
 from django.core.mail import send_mail
 from django import forms
+from django.urls import path
 from django_admin_action_forms import action_with_form, AdminActionForm
 from django.contrib.contenttypes.models import ContentType
 from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking, IPAddress
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models.functions import TruncDay, TruncDate
 from django.contrib.auth import get_user_model
 # from mapwidgets.widgets import GooglePointFieldWidget
 from django.contrib.gis.db import models
 from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils.html import format_html
-import logging
+import logging, json
 
 User = get_user_model()
 
@@ -153,6 +156,48 @@ class VisitorInfosAdmin(admin.ModelAdmin):
         return obj.content_type == ContentType.objects.get_for_model(ContactMessage) and obj.object_id is not None
     has_submitted_contact_form.boolean = True
     has_submitted_contact_form.short_description = "Submitted Contact Form"
+
+    # For chart.js
+    change_list_template = "admin/change_list_graph.html"  # ✅ Custom template
+
+    def changelist_view(self, request, extra_context=None):
+        """ Modify the changelist page to pass chart data for Chart.js visualization. """
+
+        # ✅ Aggregate visitors per day
+        daily_visits = (
+            VisitorInfos.objects.annotate(date=TruncDate("event_date"))
+            .values("date")
+            .annotate(y=Count("id"))
+            .order_by("date")
+        )
+
+        # ✅ Count visits per page
+        page_visits = (
+            VisitorInfos.objects.values("page_visited")
+            .annotate(y=Count("id"))
+            .order_by("-y")
+        )
+
+        # ✅ Count visits per referrer
+        referrer_visits = (
+            VisitorInfos.objects.exclude(referrer__isnull=True)
+            .exclude(referrer="")
+            .values("referrer")
+            .annotate(y=Count("id"))
+            .order_by("-y")
+        )
+
+        # ✅ Convert to JSON format
+        chart_data = {
+            "daily": list(daily_visits),
+            "pages": list(page_visits),
+            "referrers": list(referrer_visits),
+        }
+
+        extra_context = extra_context or {"chart_data": json.dumps(chart_data, cls=DjangoJSONEncoder)}
+
+        return super().changelist_view(request, extra_context=extra_context)
+
 
 # 🎯 Register ContactMessage in Admin
 @admin.register(ContactMessage)

@@ -26,6 +26,12 @@ sudo apt-get install binutils libproj-dev gdal-bin
 ```
 For any errors on Geospacial libraries check Django documentation [GIS](https://docs.djangoproject.com/en/5.1/ref/contrib/gis/install/geolibs/)
 
+Install google-auth pip libraries
+```bash
+pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+```
+
+
 Run migrations:
 
 python manage.py makemigrations
