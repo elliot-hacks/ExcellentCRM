@@ -2,7 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.core.mail import send_mail
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import ContactMessage
+from .models import ContactMessage, IPAddress, EmailTracking
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db.models import Count
@@ -22,6 +22,28 @@ def track_action(request):
             return JsonResponse({"status": "success"})
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)})
+
+
+def email_open_tracking(request, tracking_id):
+    """ Tracks email opens using a 1x1 transparent image """
+    tracking = get_object_or_404(EmailTracking, id=tracking_id)
+
+    # Mark the email as opened (if not already)
+    if not tracking.opened_at:
+        tracking.opened_at = now()
+        tracking.save(update_fields=["opened_at"])
+
+    # Return a 1x1 transparent pixel
+    pixel_data = b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\xff\x00\xc0\xc0\xc0\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+    return HttpResponse(pixel_data, content_type="image/gif")
+
+
+def email_link_tracking(request, tracking_id, redirect_url):
+    """ Tracks email link clicks before redirecting """
+    tracking = get_object_or_404(EmailTracking, id=tracking_id)
+
+    tracking.mark_clicked()
+    return redirect(redirect_url)
 
 
 def get_visitor_statistics():
@@ -61,9 +83,13 @@ def contact_page(request):
     if request.method == "POST":
         form = ContactForm(request.POST)
         if form.is_valid():
-            # Save the form data and capture the IP address
+            # Save the form data and link to IPAddress
             contact_message = form.save(commit=False)
-            contact_message.ip_address = get_ip(request)  # Capture the user's IP address
+            ip_address = get_ip(request)
+
+            # Retrieve or create IPAddress instance
+            ip_instance, created = IPAddress.objects.get_or_create(ip_address=ip_address)
+            contact_message.ip_address = ip_instance  # Link to IPAddress instance
             contact_message.save()
 
             # Send notification email
@@ -85,7 +111,6 @@ def contact_page(request):
         form = ContactForm()
 
     return render(request, "sales/contact.html", {"form": form})
-
 def contact_success(request):
     """Render the success page after a user submits a contact form."""
     return render(request, "sales/contact_success.html")

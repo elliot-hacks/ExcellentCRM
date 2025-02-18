@@ -42,7 +42,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # 'sales.ip_middleware.VisitorTrackingMiddleware',
-    # 'sales.processor.log_user_action',
     # 'allauth.account.middleware.AccountMiddleware',
 ]
 
