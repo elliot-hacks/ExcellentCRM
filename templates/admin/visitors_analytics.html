@@ -1,0 +1,35 @@
+<!-- templates/admin/visitors_analytics.html -->
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Visitors Analytics</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Metric</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Total Users</td>
+            <td>{{ total_users }}</td>
+        </tr>
+        <tr>
+            <td>Total Emails</td>
+            <td>{{ total_emails }}</td>
+        </tr>
+        <tr>
+            <td>Total Page Visits</td>
+            <td>{{ total_page_visits }}</td>
+        </tr>
+        <tr>
+            <td>Sales Contact Visits</td>
+            <td>{{ sales_contact_visits }}</td>
+        </tr>
+        <tr>
+            <td>Conversion Rate</td>
+            <td>{{ conversion_rate }}</td>
+        </tr>
+    </tbody>
+</table>
+{% endblock %}

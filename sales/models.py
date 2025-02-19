@@ -4,8 +4,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import now
-
+from django.conf import settings
 User = get_user_model()
+
+
 class EmailTemplate(models.Model):
     subject = models.CharField(max_length=255, help_text="Enter the email subject.")
     message = models.TextField(help_text="Enter the email message.")
@@ -74,15 +76,23 @@ class VisitorInfos(models.Model):
     def __str__(self):
         return f"{self.ip_address.ip_address} - {self.ip_address.country} - {self.ip_address.city} visited {self.page_visited} ({self.visit_count} times) on {self.event_date}"
 
-class ContactMessage(models.Model):
+
+class Contact(models.Model):
     name = models.CharField(max_length=255)
-    email = models.EmailField()
-    message = models.TextField()
-    submitted_at = models.DateTimeField(auto_now_add=True)
-    ip_address = models.ForeignKey(IPAddress, on_delete=models.CASCADE, null=True, blank=True)  # ForeignKey to IPAddress
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.email} - {self.submitted_at} - {self.ip_address.ip_address}"
+        return self.name
+
+class ContactMessage(models.Model):
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE)
+    message = models.TextField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.ForeignKey("IPAddress", on_delete=models.CASCADE, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.contact.email} - {self.submitted_at} - {self.ip_address.ip_address if self.ip_address else 'N/A'}"
 
 
 # For google calender
@@ -117,3 +127,42 @@ class EventResponse(models.Model):
 
     def __str__(self):
         return f"{self.attendee} - {self.get_response_status_display()} ({self.event.title})"
+
+
+class Analytics(models.Model):
+    """Model for tracking visitor analytics based on real relations."""
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Analytics"
+        verbose_name_plural = "Analytics"
+
+    def total_users(self):
+        """Count of unique users from AUTH_USER_MODEL."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        return User.objects.count()
+
+    def total_emails(self):
+        """Count of unique emails sent via ContactMessage."""
+        from .models import ContactMessage
+        return ContactMessage.objects.values('email').distinct().count()
+
+    def total_page_visits(self):
+        """Count of all page visits."""
+        from .models import VisitorInfos
+        return VisitorInfos.objects.count()
+
+    def sales_contact_visits(self):
+        """Count of visits to the /salescontact/ endpoint."""
+        from .models import VisitorInfos
+        return VisitorInfos.objects.filter(page_visited="/salescontact/").count()
+
+    def conversion_rate(self):
+        """Percentage of unique emails sent compared to users visiting /salescontact/."""
+        total_emails = self.total_emails()
+        sales_visits = self.sales_contact_visits()
+        return (total_emails / sales_visits * 100) if sales_visits > 0 else 0
+
+    def __str__(self):
+        return "Website Analytics Data"

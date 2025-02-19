@@ -126,18 +126,17 @@ def contact_page(request):
     if request.method == "POST":
         form = ContactForm(request.POST)
         if form.is_valid():
-            # Save the form data and link to IPAddress
             contact_message = form.save(commit=False)
             ip_address = get_ip(request)
 
             # Retrieve or create IPAddress instance
-            ip_instance, created = IPAddress.objects.get_or_create(ip_address=ip_address)
-            contact_message.ip_address = ip_instance  # Link to IPAddress instance
+            ip_instance, _ = IPAddress.objects.get_or_create(ip_address=ip_address)
+            contact_message.ip_address = ip_instance
             contact_message.save()
 
             # Send notification email
             subject = "New Contact Form Submission"
-            message = f"A new comment was submitted by {contact_message.email}:\n\n{contact_message.message}"
+            message = f"A new message was submitted by {contact_message.contact.email}:\n\n{contact_message.message}"
             recipient_email = "iamthetechoverload@gmail.com"
 
             send_mail(
@@ -154,6 +153,7 @@ def contact_page(request):
         form = ContactForm()
 
     return render(request, "sales/contact.html", {"form": form})
+
 def contact_success(request):
     """Render the success page after a user submits a contact form."""
     return render(request, "sales/contact_success.html")

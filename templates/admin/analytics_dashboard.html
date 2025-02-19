@@ -1,45 +1,30 @@
+<!-- templates/admin/analytics_dashboard.html -->
 {% extends "admin/base_site.html" %}
 {% block content %}
 <h1>📊 Sales & Email Analytics</h1>
 
 <!-- Visitor Analytics -->
 <h2>Visitor Analytics</h2>
-<p><strong>Total Visitors:</strong> {{ total_visitors }}</p>
-<canvas id="visitorChart"></canvas>
-
-<!-- Email Analytics -->
-<h2>Email Analytics</h2>
-<p><strong>Total Emails Sent:</strong> {{ total_sent_emails }}</p>
-<p><strong>Open Rate:</strong> {{ email_open_rate }}%</p>
-<p><strong>Click Rate:</strong> {{ email_click_rate }}%</p>
-<canvas id="emailChart"></canvas>
+<p><strong>Total Users:</strong> {{ total_users }}</p>
+<p><strong>Total Emails Sent:</strong> {{ total_emails }}</p>
+<p><strong>Total Page Visits:</strong> {{ total_page_visits }}</p>
+<p><strong>Sales Contact Page Visits:</strong> {{ sales_contact_visits }}</p>
+<p><strong>Conversion Rate:</strong> {{ conversion_rate|floatformat:2 }}%</p>
 
 <!-- Load Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    var ctx1 = document.getElementById("visitorChart").getContext("2d");
-    var visitorChart = new Chart(ctx1, {
+    var ctx = document.getElementById("visitorChart").getContext("2d");
+    var visitorChart = new Chart(ctx, {
         type: "bar",
         data: {
-            labels: [{% for page in most_visited_pages %}"{{ page.page_visited }}",{% endfor %}],
+            labels: ["Total Users", "Total Emails", "Total Page Visits", "Sales Contact Visits"],
             datasets: [{
-                label: "Most Visited Pages",
-                data: [{% for page in most_visited_pages %}{{ page.count }},{% endfor %}],
-                backgroundColor: "rgba(54, 162, 235, 0.5)"
-            }]
-        }
-    });
-
-    var ctx2 = document.getElementById("emailChart").getContext("2d");
-    var emailChart = new Chart(ctx2, {
-        type: "pie",
-        data: {
-            labels: ["Opened Emails", "Clicked Links"],
-            datasets: [{
-                data: [{{ opened_emails }}, {{ clicked_links }}],
-                backgroundColor: ["rgba(75, 192, 192, 0.5)", "rgba(255, 99, 132, 0.5)"]
+                label: "Analytics",
+                data: [{{ total_users }}, {{ total_emails }}, {{ total_page_visits }}, {{ sales_contact_visits }}],
+                backgroundColor: ["rgba(54, 162, 235, 0.5)", "rgba(75, 192, 192, 0.5)", "rgba(255, 99, 132, 0.5)", "rgba(255, 206, 86, 0.5)"]
             }]
         }
     });

@@ -4,10 +4,11 @@ from django import forms
 from django.urls import path
 from django_admin_action_forms import action_with_form, AdminActionForm
 from django.contrib.contenttypes.models import ContentType
-from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking, IPAddress, GoogleCalendarEvent, EventResponse
+from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking, IPAddress, GoogleCalendarEvent, EventResponse, Analytics, Contact
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.functions import TruncDay, TruncDate
+from nonrelated_inlines.admin import NonrelatedStackedInline
 from django.contrib.auth import get_user_model
 # from mapwidgets.widgets import GooglePointFieldWidget
 from django.contrib.gis.db import models
@@ -152,6 +153,7 @@ class VisitorInfosAdmin(admin.ModelAdmin):
     readonly_fields = ("ip_address", "page_visited", "event_date", "visit_count", "action")
     list_per_page = 20
 
+
     def has_submitted_contact_form(self, obj):
         return obj.content_type == ContentType.objects.get_for_model(ContactMessage) and obj.object_id is not None
     has_submitted_contact_form.boolean = True
@@ -198,15 +200,17 @@ class VisitorInfosAdmin(admin.ModelAdmin):
 
         return super().changelist_view(request, extra_context=extra_context)
 
-
-# 🎯 Register ContactMessage in Admin
-@admin.register(ContactMessage)
+# 🎯 Register ContactMessage and Contact in Admin
+@admin.register(Contact)
 class ContactAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "message", "submitted_at")
-    search_fields = ("name", "email", "message")
-    list_per_page = 20
-    actions = [send_custom_email]
+    list_display = ("name", "email", "phone")
+    search_fields = ("name", "email", "phone")
 
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ("contact", "message", "submitted_at", "ip_address")
+    search_fields = ("contact__name", "contact__email", "message")
+    list_filter = ("submitted_at", "ip_address")
 # 🎯 Register EmailTracking in Admin
 @admin.register(EmailTracking)
 class EmailTrackingAdmin(admin.ModelAdmin):
@@ -237,3 +241,61 @@ class EventResponseAdmin(admin.ModelAdmin):
     list_filter = ("response_status",)
     search_fields = ("event__title", "attendee__username")
     list_per_page = 20
+
+
+@admin.register(Analytics)
+class AnalyticsAdmin(admin.ModelAdmin):
+    """Custom admin panel for website analytics with dynamic relations."""
+
+    list_display = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display", "last_updated")
+    readonly_fields = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display", "last_updated")
+
+    def has_add_permission(self, request):
+        return False  # Prevents manual additions
+
+    def has_delete_permission(self, request, obj=None):
+        return False  # Prevents deletions
+
+    def get_urls(self):
+        """Add custom URL for analytics view in Django admin."""
+        urls = super().get_urls()
+        custom_urls = [
+            path('analytics-report/', self.admin_site.admin_view(self.analytics_report_view), name='analytics_report'),
+        ]
+        return custom_urls + urls
+
+    def analytics_report_view(self, request):
+        """Render the analytics dashboard inside Django admin."""
+        analytics = Analytics.objects.first()
+        if not analytics:
+            analytics = Analytics.objects.create()
+
+        context = {
+            'analytics': analytics,
+            'total_users': analytics.total_users(),
+            'total_emails': analytics.total_emails(),
+            'total_page_visits': analytics.total_page_visits(),
+            'sales_contact_visits': analytics.sales_contact_visits(),
+            'conversion_rate': analytics.conversion_rate(),
+        }
+        return render(request, 'admin/analytics_dashboard.html', context)
+
+    def total_users_count(self, obj):
+        return obj.total_users()
+    total_users_count.short_description = "Total Users"
+
+    def total_emails_count(self, obj):
+        return obj.total_emails()
+    total_emails_count.short_description = "Total Emails"
+
+    def total_page_visits_count(self, obj):
+        return obj.total_page_visits()
+    total_page_visits_count.short_description = "Total Page Visits"
+
+    def sales_contact_visits_count(self, obj):
+        return obj.sales_contact_visits()
+    sales_contact_visits_count.short_description = "Sales Contact Visits"
+
+    def conversion_rate_display(self, obj):
+        return f"{obj.conversion_rate():.2f}%"
+    conversion_rate_display.short_description = "Conversion Rate"
