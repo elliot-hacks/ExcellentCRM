@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     # 'allauth.account',
     # 'allauth.socialaccount',
     # 'allauth.socialaccount.providers.google',
+    'rest_framework',
     'mapwidgets',
     'adminsortable',
     'django_admin_action_forms',
@@ -31,6 +32,7 @@ INSTALLED_APPS = [
     # CRM Apps
     'home',
     'sales',
+    'ai',
 ]
 
 MIDDLEWARE = [
@@ -146,6 +148,7 @@ MAP_WIDGETS = {
     "GOOGLE_MAP_API_KEY": "AIzaSyA1fXsJSKqZH_Bl9d9wueJMlpXd-6tEJy0"
 }
 
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 ### Google OAuth2 settings
 # OAUTH2_PROVIDER = {

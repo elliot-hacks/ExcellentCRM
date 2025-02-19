@@ -11,3 +11,6 @@ django-admin-action-forms>=1.3.0
 django-map-widgets>=0.5.1
 django-chartjs>=2.3.0
 python-pesa>=0.7
+djangorestframework
+markdown>=3.7
+django-filter>=25.1

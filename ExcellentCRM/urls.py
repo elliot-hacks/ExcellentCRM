@@ -7,6 +7,7 @@ urlpatterns = [
     # path('accounts/', include('allauth.urls')),
     # path('accounts/', include('allauth.socialaccount.urls')),
     path('', include('home.urls')),
+    path('ai', include('ai.urls')),
     path('sales', include('sales.urls')),
     path("admin/action-forms/", include("django_admin_action_forms.urls")),
     # path("admin/analytics-dashboard/", analytics_dashboard, name="analytics_dashboard"),

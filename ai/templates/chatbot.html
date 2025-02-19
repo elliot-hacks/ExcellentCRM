@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>I am Groq</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <input type="text" class="form-control form-control-lg" name="user_input" placeholder="Ask me anything">
+        </div>
+        <input type="submit" class="btn btn-primary mt-3" value="Submit">
+        <button type="button"
+                hx-post="/clear_chat/" hx-target="#chatHistory" hx-swap="innerHTML"
+                hx-indicator="#loading"
+                class="btn btn-secondary mt-3">
+            Clear
+        </button>
+    </form>
+    <div class="card mt-5">
+        <div class="card-body">
+            <ul id="chatHistory" class="mt-1">
+                {% for message in chat_history %}
+                    {% if message.role == "user" %}
+                        <li><strong>You:</strong> {{ message.content }}</li>
+                    {% elif message.role == "assistant" %}
+                        <li><strong>Assistant:</strong> {{ message.content }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+            <div id="loading" class="d-none">Clearing...</div>
+        </div>
+    </div>
+</div>
+<script src="https://unpkg.com/htmx.org@1.9.4"></script>
+{% endblock content %}
