@@ -147,35 +147,12 @@ MAP_WIDGETS = {
 }
 
 
-# Google calender API
-# GOOGLE_CLIENT_SECRETS_FILE = os.path.join(BASE_DIR, 'path/to/client_secret.json')
-# GOOGLE_API_SCOPES = ['https://www.googleapis.com/auth/calendar']
-# REDIRECT_URI = 'http://localhost:8000/oauth2callback' 
-
-# AUTHENTICATION_BACKENDS = [
-#     'django.contrib.auth.backends.ModelBackend',
-#     'allauth.account.auth_backends.AuthenticationBackend',
-# ]
-
-# ACCOUNT_EMAIL_REQUIRED = True
-# ACCOUNT_USERNAME_REQUIRED = False
-# ACCOUNT_AUTHENTICATION_METHOD = 'email'
-# ACCOUNT_EMAIL_VERIFICATION = 'optional'
-# LOGIN_REDIRECT_URL = '/'
-
-# SOCIALACCOUNT_PROVIDERS = {
-#     'google': {
-#         'APP': {
-#             'client_id': 'GOOGLE_CLIENT_ID',
-#             'secret': 'GOOGLE_CLIENT_SECRET',
-#             'key': 'API_KEY'
-#         },
-#         'SCOPE': [
-#             'profile',
-#             'email',
-#         ],
-#         'AUTH_PARAMS': {
-#             'access_type': 'online',
-#         }
-#     }
+### Google OAuth2 settings
+# OAUTH2_PROVIDER = {
+#     'SCOPES': {'calendar': 'Read/write access to Google Calendar'},
+#     'CLIENT_ID': 'YOUR_GOOGLE_CLIENT_ID',
+#     'CLIENT_SECRET': 'YOUR_GOOGLE_CLIENT_SECRET',
 # }
+
+# # Path to the token file (stores OAuth2 token)
+# GOOGLE_TOKEN_FILE = os.path.join(BASE_DIR, 'token.json')

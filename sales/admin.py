@@ -4,7 +4,7 @@ from django import forms
 from django.urls import path
 from django_admin_action_forms import action_with_form, AdminActionForm
 from django.contrib.contenttypes.models import ContentType
-from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking, IPAddress
+from .models import ContactMessage, EmailTemplate, VisitorInfos, EmailTracking, IPAddress, GoogleCalendarEvent, EventResponse
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models.functions import TruncDay, TruncDate
@@ -221,4 +221,19 @@ class IPAddressAdmin(admin.ModelAdmin):
     list_display = ("ip_address", "city", "region", "country", "isp", "timezone")
     list_filter = ("country", "region", "city")
     search_fields = ("ip_address", "city", "region", "country", "isp")
+    list_per_page = 20
+
+
+@admin.register(GoogleCalendarEvent)
+class GoogleCalendarEventAdmin(admin.ModelAdmin):
+    list_display = ("title", "start_time", "end_time", "meeting_link")
+    search_fields = ("title", "description")
+    list_filter = ("start_time",)
+    list_per_page = 20
+
+@admin.register(EventResponse)
+class EventResponseAdmin(admin.ModelAdmin):
+    list_display = ("event", "attendee", "response_status")
+    list_filter = ("response_status",)
+    search_fields = ("event__title", "attendee__username")
     list_per_page = 20

@@ -6,7 +6,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import now
 
 User = get_user_model()
-
 class EmailTemplate(models.Model):
     subject = models.CharField(max_length=255, help_text="Enter the email subject.")
     message = models.TextField(help_text="Enter the email message.")
@@ -60,8 +59,8 @@ class IPAddress(models.Model):
         return self.ip_address
 
 class VisitorInfos(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    ip_address = models.ForeignKey(IPAddress, on_delete=models.SET_NULL, null=True, blank=True)  # ForeignKey to IPAddress
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    ip_address = models.ForeignKey(IPAddress, on_delete=models.CASCADE, null=True, blank=True)  # ForeignKey to IPAddress
     session_id = models.CharField(max_length=255, blank=True, null=True)
     user_agent = models.TextField(blank=True, null=True)
     referrer = models.URLField(blank=True, null=True)
@@ -80,7 +79,41 @@ class ContactMessage(models.Model):
     email = models.EmailField()
     message = models.TextField()
     submitted_at = models.DateTimeField(auto_now_add=True)
-    ip_address = models.ForeignKey(IPAddress, on_delete=models.SET_NULL, null=True, blank=True)  # ForeignKey to IPAddress
+    ip_address = models.ForeignKey(IPAddress, on_delete=models.CASCADE, null=True, blank=True)  # ForeignKey to IPAddress
 
     def __str__(self):
         return f"{self.email} - {self.submitted_at} - {self.ip_address.ip_address}"
+
+
+# For google calender
+class GoogleCalendarEvent(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    meeting_link = models.URLField(blank=True, null=True)
+    calendar_event_id = models.CharField(max_length=255, blank=True, null=True)
+    user_group = models.ForeignKey("auth.Group", on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return self.title
+
+class EventResponse(models.Model):
+    STATUS_CHOICES = [
+        ("accepted", "Accepted"),
+        ("declined", "Declined"),
+        ("tentative", "Tentative"),
+        ("no_response", "No Response"),
+    ]
+
+    event = models.ForeignKey(GoogleCalendarEvent, on_delete=models.CASCADE, related_name="responses")
+    
+    # Generic Foreign Key to handle both Users and ContactMessages
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    attendee = GenericForeignKey("content_type", "object_id")
+
+    response_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="no_response")
+
+    def __str__(self):
+        return f"{self.attendee} - {self.get_response_status_display()} ({self.event.title})"
