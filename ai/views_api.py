@@ -21,21 +21,32 @@ def api_chat_with_ai(request):
     if not user_message:
         return Response({"error": "Message is required"}, status=400)
 
+    # Save user message to the database
     ChatMessage.objects.create(user=user, role="user", content=user_message)
 
+    # Fetch chat history from the database
+    chat_history = list(ChatMessage.objects.filter(user=user).order_by('timestamp').values('role', 'content'))
+
+    # Add system prompt if chat history is empty
+    if not chat_history:
+        chat_history = [{"role": "system", "content": "You are a helpful AI assistant."}]
+
+    # Get AI response
     chat_completion = client.chat.completions.create(
-        messages=[{"role": "system", "content": "You are a helpful AI assistant."},
-                  {"role": "user", "content": user_message}],
+        messages=chat_history + [{"role": "user", "content": user_message}],
         model="llama3-8b-8192",
         temperature=0.7,
         max_tokens=100
     )
 
     ai_response = chat_completion.choices[0].message.content
+
+    # Save assistant message to the database
     ChatMessage.objects.create(user=user, role="assistant", content=ai_response)
 
     return Response({"message": ai_response})
 
+    
 @api_view(["POST"])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 @permission_classes([IsAuthenticated])
