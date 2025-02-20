@@ -144,24 +144,9 @@ class Analytics(models.Model):
         return User.objects.count()
 
     def total_emails(self):
-
-        """Count of unique emails from Contact and AUTH_USER_MODEL."""
-
         User = get_user_model()  # Get the user model
-
-
-        # Get unique emails from Contact
-
         contact_emails = Contact.objects.values_list('email', flat=True).distinct()
-
-
-        # Get unique emails from AUTH_USER_MODEL
-
         user_emails = User.objects.values_list('email', flat=True).distinct()
-
-
-        # Combine both querysets and count unique emails
-
         unique_emails = set(contact_emails) | set(user_emails)  # Union of both sets
 
 
@@ -178,6 +163,13 @@ class Analytics(models.Model):
         return VisitorInfos.objects.filter(page_visited="/salescontact/").count()
 
     def conversion_rate(self):
+        """Percentage of unique emails sent compared to users visiting /salescontact/."""
+        total_emails = self.total_emails()
+        all_visits = self.total_page_visits()
+        return (total_emails / all_visits * 100) if all_visits > 0 else 0
+
+
+    def sales_contact_rate(self):
         """Percentage of unique emails sent compared to users visiting /salescontact/."""
         total_emails = self.total_emails()
         sales_visits = self.sales_contact_visits()

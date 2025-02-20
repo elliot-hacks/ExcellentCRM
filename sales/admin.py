@@ -248,8 +248,8 @@ class EventResponseAdmin(admin.ModelAdmin):
 class AnalyticsAdmin(admin.ModelAdmin):
     """Custom admin panel for website analytics with dynamic relations."""
 
-    list_display = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display")
-    readonly_fields = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display")
+    list_display = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display", "sales_rate_display")
+    readonly_fields = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display", "sales_rate_display")
 
     # def has_add_permission(self, request):
     #     return False  # Prevents manual additions
@@ -283,11 +283,11 @@ class AnalyticsAdmin(admin.ModelAdmin):
 
     def total_users_count(self, obj):
         return obj.total_users()
-    total_users_count.short_description = "Total Users"
+    total_users_count.short_description = "Registered Users"
 
     def total_emails_count(self, obj):
         return obj.total_emails()
-    total_emails_count.short_description = "Total Emails"
+    total_emails_count.short_description = "All Emails"
 
     def total_page_visits_count(self, obj):
         return obj.total_page_visits()
@@ -299,4 +299,9 @@ class AnalyticsAdmin(admin.ModelAdmin):
 
     def conversion_rate_display(self, obj):
         return f"{obj.conversion_rate():.2f}%"
-    conversion_rate_display.short_description = "Conversion Rate"
+    conversion_rate_display.short_description = "Visits/Submission Emails"
+
+
+    def sales_rate_display(self, obj):
+        return f"{obj.sales_contact_rate():.2f}%"
+    conversion_rate_display.short_description = "Sales/Submission Emails"
