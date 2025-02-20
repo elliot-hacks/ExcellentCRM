@@ -205,6 +205,7 @@ class VisitorInfosAdmin(admin.ModelAdmin):
 class ContactAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "phone")
     search_fields = ("name", "email", "phone")
+    actions = [send_custom_email]
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
@@ -247,38 +248,38 @@ class EventResponseAdmin(admin.ModelAdmin):
 class AnalyticsAdmin(admin.ModelAdmin):
     """Custom admin panel for website analytics with dynamic relations."""
 
-    list_display = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display", "last_updated")
-    readonly_fields = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display", "last_updated")
+    list_display = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display")
+    readonly_fields = ("total_users_count", "total_emails_count", "total_page_visits_count", "sales_contact_visits_count", "conversion_rate_display")
 
-    def has_add_permission(self, request):
-        return False  # Prevents manual additions
+    # def has_add_permission(self, request):
+    #     return False  # Prevents manual additions
 
-    def has_delete_permission(self, request, obj=None):
-        return False  # Prevents deletions
+    # def has_delete_permission(self, request, obj=None):
+    #     return False  # Prevents deletions
 
-    def get_urls(self):
-        """Add custom URL for analytics view in Django admin."""
-        urls = super().get_urls()
-        custom_urls = [
-            path('analytics-report/', self.admin_site.admin_view(self.analytics_report_view), name='analytics_report'),
-        ]
-        return custom_urls + urls
+    # def get_urls(self):
+    #     """Add custom URL for analytics view in Django admin."""
+    #     urls = super().get_urls()
+    #     custom_urls = [
+    #         path('analytics-report/', self.admin_site.admin_view(self.analytics_report_view), name='analytics_report'),
+    #     ]
+    #     return custom_urls + urls
 
-    def analytics_report_view(self, request):
-        """Render the analytics dashboard inside Django admin."""
-        analytics = Analytics.objects.first()
-        if not analytics:
-            analytics = Analytics.objects.create()
+    # def analytics_report_view(self, request):
+    #     """Render the analytics dashboard inside Django admin."""
+    #     analytics = Analytics.objects.first()
+    #     if not analytics:
+    #         analytics = Analytics.objects.create()
 
-        context = {
-            'analytics': analytics,
-            'total_users': analytics.total_users(),
-            'total_emails': analytics.total_emails(),
-            'total_page_visits': analytics.total_page_visits(),
-            'sales_contact_visits': analytics.sales_contact_visits(),
-            'conversion_rate': analytics.conversion_rate(),
-        }
-        return render(request, 'admin/analytics_dashboard.html', context)
+    #     context = {
+    #         'analytics': analytics,
+    #         'total_users': analytics.total_users(),
+    #         'total_emails': analytics.total_emails(),
+    #         'total_page_visits': analytics.total_page_visits(),
+    #         'sales_contact_visits': analytics.sales_contact_visits(),
+    #         'conversion_rate': analytics.conversion_rate(),
+    #     }
+    #     return render(request, 'admin/analytics_dashboard.html', context)
 
     def total_users_count(self, obj):
         return obj.total_users()

@@ -1,46 +1,37 @@
 from django.utils.timezone import now  # ✅ Use timezone-aware function
 from django.conf import settings
 from .models import VisitorInfos, IPAddress
+from .utils import get_ip, get_location
 import socket
 import datetime
 
 
 def save_visitor_infos(request):
-    """ Tracks page visits and updates visit counts """
+    """Tracks page visits and updates visit counts."""
     if not hasattr(request, 'META'):
         print("🚨 Error: Invalid request object")
         return {}
 
     try:
-        # Get visitor IP address
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+        ip_address = get_ip(request)  # ✅ Get visitor's IP
 
-        # Validate IP address
-        try:
-            socket.inet_aton(ip)
-            ip_valid = True
-        except socket.error:
-            ip_valid = False
+        # ✅ Ensure IP exists in the database
+        ip_instance, _ = IPAddress.objects.get_or_create(ip_address=ip_address)
 
-        if ip_valid:
-            page_visited = request.path
-            present_date = now()
+        # ✅ Track page visit
+        page_visited = request.path
+        present_date = now()
 
-            # ✅ Ensure IP address exists in the database
-            ip_instance, _ = IPAddress.objects.get_or_create(ip_address=ip)
+        visit_entry, created = VisitorInfos.objects.get_or_create(
+            ip_address=ip_instance,
+            page_visited=page_visited,
+            defaults={"last_visited": present_date, "visit_count": 1}
+        )
 
-            # ✅ Check if visitor record exists
-            visit_entry, created = VisitorInfos.objects.get_or_create(
-                ip_address=ip_instance,
-                page_visited=page_visited,
-                defaults={"last_visited": present_date, "visit_count": 1}
-            )
-
-            if not created:
-                visit_entry.visit_count += 1  # ✅ Increment visit count
-                visit_entry.last_visited = present_date  # ✅ Update last visited time
-                visit_entry.save()
+        if not created:
+            visit_entry.visit_count += 1
+            visit_entry.last_visited = present_date
+            visit_entry.save()
 
     except Exception as e:
         print(f"🚨 Error saving visitor info: {e}")

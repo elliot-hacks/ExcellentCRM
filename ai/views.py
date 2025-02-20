@@ -9,7 +9,7 @@ import os
 API_KEY = os.environ.get('GROQ_API_KEY')
 client = Groq(api_key=API_KEY)
 
-system_prompt = {"role": "system", "content": "You are a helpful assistant. You reply with very short answers."}
+system_prompt = {"role": "system", "content": "You are a helpful assistant named JackTheRipper. You reply with very clear answers"}
 
 @login_required
 def chatbot(request):
@@ -29,7 +29,7 @@ def chatbot(request):
 
         # Get AI response
         response = client.chat.completions.create(
-            model="llama3-70b-8192", messages=chat_history, max_tokens=100, temperature=1.2
+            model="llama3-70b-8192", messages=chat_history, max_tokens=250, temperature=1.2
         )
         ai_response = response.choices[0].message.content
 

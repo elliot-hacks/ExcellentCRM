@@ -131,7 +131,7 @@ class EventResponse(models.Model):
 
 class Analytics(models.Model):
     """Model for tracking visitor analytics based on real relations."""
-    last_updated = models.DateTimeField(auto_now=True)
+    # last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Analytics"
@@ -144,9 +144,28 @@ class Analytics(models.Model):
         return User.objects.count()
 
     def total_emails(self):
-        """Count of unique emails sent via ContactMessage."""
-        from .models import ContactMessage
-        return ContactMessage.objects.values('email').distinct().count()
+
+        """Count of unique emails from Contact and AUTH_USER_MODEL."""
+
+        User = get_user_model()  # Get the user model
+
+
+        # Get unique emails from Contact
+
+        contact_emails = Contact.objects.values_list('email', flat=True).distinct()
+
+
+        # Get unique emails from AUTH_USER_MODEL
+
+        user_emails = User.objects.values_list('email', flat=True).distinct()
+
+
+        # Combine both querysets and count unique emails
+
+        unique_emails = set(contact_emails) | set(user_emails)  # Union of both sets
+
+
+        return len(unique_emails)
 
     def total_page_visits(self):
         """Count of all page visits."""
@@ -163,6 +182,16 @@ class Analytics(models.Model):
         total_emails = self.total_emails()
         sales_visits = self.sales_contact_visits()
         return (total_emails / sales_visits * 100) if sales_visits > 0 else 0
+
+
+    def total_email_templates(self):
+        """Count of all page visits."""
+        from .models import EmailTemplate
+        return EmailTemplate.objects.count()
+
+    def total_contacts(self):
+        from .models import Contact
+        return Contact.objects.values_list('email', flat=True).distinct()
 
     def __str__(self):
         return "Website Analytics Data"
