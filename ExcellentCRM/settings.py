@@ -150,6 +150,12 @@ MAP_WIDGETS = {
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
+
+STATIC_URL = 'static/'
+# YARA_RULE_FILE = '/YARA/'
+MEDIA_URL = '/uploads/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'uploads')
+
 ### Google OAuth2 settings
 # OAUTH2_PROVIDER = {
 #     'SCOPES': {'calendar': 'Read/write access to Google Calendar'},

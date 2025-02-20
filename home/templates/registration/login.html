@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Login</h2>
+    {% for message in messages %}
+        <p style="color: red;">{{ message }}</p>
+    {% endfor %}
+    <form method="post">
+        {% csrf_token %}
+        {{ login_form.as_p }}
+        <button type="submit">Login</button>
+        <p class="text-center mt-2">Don't have an account? <a href="{% url 'home:u_register' %}">Register</a></p>
+    </form>
+{% endblock %}
