@@ -9,6 +9,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('register/', views.u_register, name='u_register'),
     path('login/', views.u_login, name="login"),
+    path('logout/', views.logout, name="logout"),
     path('activate/<uidb64>/<token>/', views.activate, name='activate'), 
     path("password_reset/", views.CustomPasswordResetView.as_view(), name="password_reset"),
 ]

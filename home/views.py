@@ -21,6 +21,10 @@ from .models import CustomUser
 def index(request):
     return render(request, 'index.html')
 
+# Add logout url, this just a placeholder func 
+def logout(request):
+    return render(request, 'index.html')
+
 def u_login(request):
     if request.method == "POST":
         form = AuthenticationForm(request, data=request.POST)
@@ -34,7 +38,7 @@ def u_login(request):
                 
                 if user.is_staff:
                     return redirect('admin:index')  # Redirect to admin interface for staff
-                return redirect('index')  # Redirect to home or other page for regular users
+                return redirect('home:index')  # Redirect to home or other page for regular users
             else:
                 messages.error(request, "Invalid username or password.")
         else:
