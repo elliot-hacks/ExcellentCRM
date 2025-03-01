@@ -29,7 +29,7 @@ def chatbot(request):
 
         # Get AI response
         response = client.chat.completions.create(
-            model="llama3-70b-8192", messages=chat_history, max_tokens=250, temperature=1.2
+            model="llama3-70b-8192", messages=chat_history, max_tokens=500, temperature=1.2
         )
         ai_response = response.choices[0].message.content
 

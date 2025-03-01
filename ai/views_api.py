@@ -34,9 +34,9 @@ def api_chat_with_ai(request):
     # Get AI response
     chat_completion = client.chat.completions.create(
         messages=chat_history + [{"role": "user", "content": user_message}],
-        model="llama3-8b-8192",
+        model="llama3-70b-8192",
         temperature=0.7,
-        max_tokens=100
+        max_tokens=500,
     )
 
     ai_response = chat_completion.choices[0].message.content
